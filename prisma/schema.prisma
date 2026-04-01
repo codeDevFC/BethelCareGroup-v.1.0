@@ -1,0 +1,337 @@
+generator client {
+provider = "prisma-client-js"
+}
+datasource db {
+provider = "postgresql"
+url      = env("DATABASE_URL")
+}
+model User {
+id                String             @id @default(cuid())
+username          String             @unique
+passwordHash      String
+name              String
+role              Role               @default(MEMBER)
+groupId           String?
+avatar            String?
+createdAt         DateTime           @default(now())
+updatedAt         DateTime           @updatedAt
+group             Group?             @relation(fields: [groupId], references: [id])
+ledGroup          Group?             @relation("GroupLeader")
+carerGroup        Group?             @relation("GroupCarer")
+prayerRequests    PrayerRequest[]
+discipleships     Discipleship[]     @relation("Disciple")
+disciplines       Discipleship[]     @relation("Discipler")
+weeklyReports     WeeklyReport[]
+attendanceRecords AttendanceRecord[]
+backsliderRecords Backslider[]
+taughtStudies     BibleStudy[]       @relation("Teacher")
+attendedStudies   BibleStudy[]       @relation("Student")
+lessonProgress    LessonProgress[]
+@@map("users")
+}
+enum Role {
+ADMIN
+PASTOR
+COORDINATOR
+LEADER
+CARER
+MEMBER
+SEEKER
+}
+model Group {
+id                  String            @id @default(cuid())
+name                String
+meetingDay          String
+meetingTime         String
+meetingLocation     String?
+fishingPond         String?
+leaderId            String?           @unique
+carerId             String?           @unique
+status              GroupStatus       @default(ACTIVE)
+createdAt           DateTime          @default(now())
+updatedAt           DateTime          @updatedAt
+healthScore         Int               @default(0)
+communityScore      Int               @default(0)
+leadershipScore     Int               @default(0)
+evangelismScore     Int               @default(0)
+accountabilityScore Int               @default(0)
+reproductionScore   Int               @default(0)
+leader              User?             @relation("GroupLeader", fields: [leaderId], references: [id])
+carer               User?             @relation("GroupCarer", fields: [carerId], references: [id])
+members             User[]
+meetings            Meeting[]
+prayerCircles       PrayerCircle[]
+prayerRequests      PrayerRequest[]
+sowingEvents        SowingEvent[]
+backsliders         Backslider[]
+weeklyReports       WeeklyReport[]
+evangelismEvents    EvangelismEvent[]
+@@map("groups")
+}
+enum GroupStatus {
+ACTIVE
+MULTIPLYING
+MERGING
+INACTIVE
+}
+model Meeting {
+id                String             @id @default(cuid())
+groupId           String
+date              DateTime
+weekNumber        Int
+topic             String
+leader            String
+attendance        Int                @default(0)
+notes             String?
+status            MeetingStatus      @default(SCHEDULED)
+createdAt         DateTime           @default(now())
+group             Group              @relation(fields: [groupId], references: [id])
+attendanceRecords AttendanceRecord[]
+weeklyReport      WeeklyReport?
+@@map("meetings")
+}
+enum MeetingStatus {
+SCHEDULED
+COMPLETED
+CANCELLED
+}
+model AttendanceRecord {
+id        String           @id @default(cuid())
+meetingId String
+memberId  String
+status    AttendanceStatus
+notes     String?
+createdAt DateTime         @default(now())
+meeting   Meeting          @relation(fields: [meetingId], references: [id])
+member    User             @relation(fields: [memberId], references: [id])
+@@unique([meetingId, memberId])
+@@map("attendance_records")
+}
+enum AttendanceStatus {
+PRESENT
+ABSENT
+EXCUSED
+LATE
+}
+model WeeklyReport {
+id              String   @id @default(cuid())
+meetingId       String   @unique
+groupId         String
+submittedBy     String
+submittedAt     DateTime @default(now())
+attendance      Int
+topic           String
+leader          String
+prayerRequests  Json
+answeredPrayers Json
+testimonies     Json
+challenges      Json
+observations    String?
+actionItems     Json
+followUpNeeded  Json
+meeting         Meeting  @relation(fields: [meetingId], references: [id])
+group           Group    @relation(fields: [groupId], references: [id])
+submitter       User     @relation(fields: [submittedBy], references: [id])
+@@map("weekly_reports")
+}
+model PrayerCircle {
+id             String          @id @default(cuid())
+groupId        String
+name           String
+members        Json
+createdAt      DateTime        @default(now())
+updatedAt      DateTime        @updatedAt
+group          Group           @relation(fields: [groupId], references: [id])
+prayerRequests PrayerRequest[]
+@@map("prayer_circles")
+}
+model PrayerRequest {
+id           String       @id @default(cuid())
+groupId      String
+circleId     String?
+memberId     String?
+request      String
+isPrivate    Boolean      @default(false)
+status       PrayerStatus @default(ACTIVE)
+answeredDate DateTime?
+testimony    String?
+createdAt    DateTime     @default(now())
+group        Group        @relation(fields: [groupId], references: [id])
+circle       PrayerCircle? @relation(fields: [circleId], references: [id])
+member       User?        @relation(fields: [memberId], references: [id])
+@@map("prayer_requests")
+}
+enum PrayerStatus {
+ACTIVE
+ANSWERED
+ARCHIVED
+}
+model Discipleship {
+id                   String               @id @default(cuid())
+disciplerId          String
+discipleId           String
+level                DiscipleshipLevel    @default(SURVIVAL_KIT)
+startDate            DateTime             @default(now())
+completionDate       DateTime?
+status               DiscipleshipStatus   @default(ACTIVE)
+scripturesMemorized  Json
+devotionsCompleted   Int                  @default(0)
+prayerJournalStarted Boolean              @default(false)
+testimonyWritten     Boolean              @default(false)
+discipler            User                 @relation("Discipler", fields: [disciplerId], references: [id])
+disciple             User                 @relation("Disciple", fields: [discipleId], references: [id])
+checkpoints          DiscipleshipCheckpoint[]
+@@unique([disciplerId, discipleId])
+@@map("discipleships")
+}
+enum DiscipleshipLevel {
+SURVIVAL_KIT
+BASIC_TRAINING
+TEAM_TACTICS
+COMPLETED
+}
+enum DiscipleshipStatus {
+ACTIVE
+PAUSED
+COMPLETED
+DROPPED
+}
+model DiscipleshipCheckpoint {
+id             String       @id @default(cuid())
+discipleshipId String
+checkpoint     String
+completedAt    DateTime     @default(now())
+notes          String?
+discipleship   Discipleship @relation(fields: [discipleshipId], references: [id])
+@@map("discipleship_checkpoints")
+}
+model EvangelismCycle {
+id          String            @id @default(cuid())
+year        Int
+phase       EvangelismPhase
+startDate   DateTime
+endDate     DateTime
+targetGroup String
+goals       Json
+events      EvangelismEvent[]
+@@map("evangelism_cycles")
+}
+enum EvangelismPhase {
+SOWING
+CULTIVATING
+REAPING
+NURTURING
+}
+model EvangelismEvent {
+id           String          @id @default(cuid())
+cycleId      String
+groupId      String?
+name         String
+type         EventType
+date         DateTime
+location     String?
+attendance   Int             @default(0)
+followUpPlan String?
+cycle        EvangelismCycle @relation(fields: [cycleId], references: [id])
+group        Group?          @relation(fields: [groupId], references: [id])
+contacts     EventContact[]
+@@map("evangelism_events")
+}
+enum EventType {
+SOWING
+CULTIVATING
+REAPING
+NURTURING
+}
+model EventContact {
+id            String          @id @default(cuid())
+eventId       String
+name          String
+email         String?
+phone         String?
+interestLevel Int             @default(50)
+followUpDate  DateTime?
+notes         String?
+createdAt     DateTime        @default(now())
+event         EvangelismEvent @relation(fields: [eventId], references: [id])
+@@map("event_contacts")
+}
+model Backslider {
+id                  String     @id @default(cuid())
+groupId             String
+memberId            String
+consecutiveAbsences Int        @default(0)
+lastAttendance      DateTime
+alertLevel          AlertLevel @default(WARNING)
+notes               String?
+contactAttempts     Int        @default(0)
+lastContact         DateTime?
+recoveredAt         DateTime?
+group               Group      @relation(fields: [groupId], references: [id])
+member              User       @relation(fields: [memberId], references: [id])
+@@unique([groupId, memberId])
+@@map("backsliders")
+}
+enum AlertLevel {
+WARNING
+CRITICAL
+RECOVERED
+}
+model SowingEvent {
+id          String   @id @default(cuid())
+groupId     String
+name        String
+description String?
+date        DateTime
+location    String?
+contacts    Int      @default(0)
+interested  Int      @default(0)
+notes       String?
+group       Group    @relation(fields: [groupId], references: [id])
+@@map("sowing_events")
+}
+model BibleStudy {
+id           String      @id @default(cuid())
+teacherId    String
+studentId    String
+topic        String
+lessonNumber Int
+status       StudyStatus @default(SCHEDULED)
+scheduledFor DateTime
+completedAt  DateTime?
+notes        String?
+teacher      User        @relation("Teacher", fields: [teacherId], references: [id])
+student      User        @relation("Student", fields: [studentId], references: [id])
+@@map("bible_studies")
+}
+enum StudyStatus {
+SCHEDULED
+COMPLETED
+CANCELLED
+FOLLOW_UP
+}
+model Lesson {
+id           String           @id @default(cuid())
+title        String
+series       String
+lessonNumber Int
+keyVerses    Json
+content      Json
+isAdminOnly  Boolean          @default(false)
+audioUrl     String?
+code         String           @unique
+progress     LessonProgress[]
+@@map("lessons")
+}
+model LessonProgress {
+id          String    @id @default(cuid())
+userId      String
+lessonId    String
+completed   Boolean   @default(false)
+completedAt DateTime?
+notes       String?
+user        User      @relation(fields: [userId], references: [id])
+lesson      Lesson    @relation(fields: [lessonId], references: [id])
+@@unique([userId, lessonId])
+@@map("lesson_progress")
+}
