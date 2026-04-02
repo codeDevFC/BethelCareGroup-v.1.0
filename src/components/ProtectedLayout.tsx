@@ -9,10 +9,7 @@ interface ProtectedLayoutProps {
   requiredRoles?: string[];
 }
 
-export default function ProtectedLayout({ 
-  children, 
-  requiredRoles = [] 
-}: ProtectedLayoutProps) {
+export default function ProtectedLayout({ children, requiredRoles = [] }: ProtectedLayoutProps) {
   const { user, loading, hasPermission } = useAuth();
   const router = useRouter();
 
@@ -20,10 +17,8 @@ export default function ProtectedLayout({
     if (!loading && !user) {
       router.push("/login");
     }
-    if (!loading && user && requiredRoles.length > 0) {
-      if (!hasPermission(requiredRoles)) {
-        router.push("/dashboard");
-      }
+    if (!loading && user && requiredRoles.length > 0 && !hasPermission(requiredRoles)) {
+      router.push("/dashboard");
     }
   }, [loading, user, router, requiredRoles, hasPermission]);
 
@@ -32,7 +27,7 @@ export default function ProtectedLayout({
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 text-sm">Loading...</p>
+          <p className="text-gray-500">Loading...</p>
         </div>
       </div>
     );
