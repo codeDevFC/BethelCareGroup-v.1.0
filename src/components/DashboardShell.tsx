@@ -1,7 +1,6 @@
 "use client";
 
-import { useAuth } from "@/lib/auth/AuthContext";
-import Link from "next/link";
+import { useAuth } from "@/lib/auth/AuthContext";import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { 
   LogOut, Menu, X, LayoutDashboard, Users, Calendar, 
